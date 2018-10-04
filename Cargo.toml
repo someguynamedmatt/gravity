@@ -4,10 +4,6 @@ version = "0.1.0"
 authors = ["Matt Young <dev@mttyng.com>"]
 edition = "2018"
 
-#[[bin]]
-#name = "gravity"
-#path = "src/lib.rs"
-
 [dependencies]
 js-sys = "0.3.0"
 wasm-bindgen = { version = "0.2.23", features = ["nightly"] }

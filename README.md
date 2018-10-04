@@ -1,8 +1,6 @@
 ## Gravity
 > simulation of point masses using Rust's `wasm-bindgen` library
 
-___
-
 To get this up and running on your machine:
 
 
