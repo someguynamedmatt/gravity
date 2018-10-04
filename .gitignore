@@ -1,0 +1,10 @@
+package-lock.json
+wasm_bindgen_gravity.js
+wasm_bindgen_gravity_bg.js
+wasm_bindgen_gravity_bg.wasm
+*.wasm
+target/
+Cargo.lock
+gravity.js
+gravity.d.ts
+node_modules/

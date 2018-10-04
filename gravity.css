@@ -1,0 +1,33 @@
+.wrapper {
+  display: flex;
+  justify-content: center;
+  flex-direction: row;
+  margin: auto;
+  height: 100vh;
+  width: 100vw;
+}
+.universe {
+  height: 95%;
+  width: 95%;
+  margin: auto;
+  background-color: black;
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+
+.central-star {
+  margin: auto;
+  height: 45px;
+  width: 45px;
+  border-radius: 50%;
+  background: #e8bc3d;
+}
+
+.planet {
+  position: absolute;
+  height: 15px;
+  width: 15px;
+  border-radius: 150px;
+  background: radial-gradient(circle at 10px 10px, blue, lightblue);
+}
