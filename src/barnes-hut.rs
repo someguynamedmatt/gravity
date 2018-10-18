@@ -44,6 +44,21 @@ impl Quadrant {
             (_, _, _, _) => ()
         }
     }
+
+    pub fn place_body_in_quadrant(&mut self, body: Body, index: usize) {
+        //println!("Place body in quadrant {:?} {:?}", body, index);
+        match index {
+            0 => self.child_quadrants.0.as_mut().unwrap().local_body = Some(body),
+            1 => self.child_quadrants.1.as_mut().unwrap().local_body = Some(body),
+            2 => self.child_quadrants.2.as_mut().unwrap().local_body = Some(body),
+            3 => self.child_quadrants.3.as_mut().unwrap().local_body = Some(body),
+            _ => (),
+        }
+    }
+
+    pub fn set_local_body_to_none(&mut self) {
+        self.local_body = None;
+    }
 }
 
 pub fn split_parent_domain_into_quarters(domain: (f64, f64, f64, f64)) -> [(f64, f64, f64, f64); 4] {
@@ -72,9 +87,10 @@ pub fn split_parent_domain_into_quarters(domain: (f64, f64, f64, f64)) -> [(f64,
 pub fn build_quadrant_space(_bodies: &[Body]) {
     let mut mother_quadrant: &mut Quadrant = &mut Quadrant::new((0.0, 500.0, 0.0, 500.0));
     for body in _bodies.iter() {
+        println!("Body in iter {:?}", body);
         insert_into_quadrant(*body, &mut mother_quadrant);
     }
-    println!("{:?}", mother_quadrant);
+    println!("Mother quadrant {:?}", mother_quadrant);
 }
 
 pub fn find_quadrant_index_to_place_body(body_coords: (f64, f64), quadrant_dimensions: &[(f64, f64, f64, f64); 4]) -> usize {
@@ -86,32 +102,58 @@ pub fn find_quadrant_index_to_place_body(body_coords: (f64, f64), quadrant_dimen
             return index;
         }
     }
-    return 0;
+    return 100;
 }
 
-pub fn insert_into_quadrant(body: Body, quadrant: &mut Quadrant) {
-    println!("BODY: {:?}", body);
-    match quadrant.local_body {
-        Some(body) => {
-            let children_domains_ranges = split_parent_domain_into_quarters(quadrant.domain_range);
-            quadrant.create_child_quadrants(children_domains_ranges);
-
-            // Find which quadrant the body _should_ go into and pass that into the next call
-            let index: usize = find_quadrant_index_to_place_body(body.coords, &children_domains_ranges);
-            println!("Index {}", index);
-            match index {
-                0 => insert_into_quadrant(body, &mut *quadrant.child_quadrants.0.as_mut().unwrap()),
-                1 => insert_into_quadrant(body, &mut *quadrant.child_quadrants.1.as_mut().unwrap()),
-                2 => insert_into_quadrant(body, &mut *quadrant.child_quadrants.2.as_mut().unwrap()),
-                3 => insert_into_quadrant(body, &mut *quadrant.child_quadrants.3.as_mut().unwrap()),
-                _ => (),
+pub fn insert_into_quadrant<'a>(body: Body, quadrant: &'a mut Quadrant) -> Option<&'a mut Quadrant> {
+    if quadrant.local_body.is_none() {
+        match quadrant.child_quadrants {
+            (None, None, None, None) => {
+                quadrant.local_body = Some(body);
+                return Some(quadrant);
             }
-        },
-        None => {
-            quadrant.local_body = Some(body);
+            (_, _, _, _) => {
+                let children_domains_ranges = split_parent_domain_into_quarters(quadrant.domain_range);
+                quadrant.create_child_quadrants(children_domains_ranges);
+
+                // Find which quadrant the body _should_ go into and pass that into the next call
+                let index: usize = find_quadrant_index_to_place_body(body.coords, &children_domains_ranges);
+
+                match index {
+                    0 => { return insert_into_quadrant(body, &mut *quadrant.child_quadrants.0.as_mut().unwrap()) }
+                    1 => { return insert_into_quadrant(body, &mut *quadrant.child_quadrants.1.as_mut().unwrap()) }
+                    2 => { return insert_into_quadrant(body, &mut *quadrant.child_quadrants.2.as_mut().unwrap()) }
+                    3 => { return insert_into_quadrant(body, &mut *quadrant.child_quadrants.3.as_mut().unwrap()) }
+                    _ => { return None }
+                };
+            }
         }
     }
 
+    if quadrant.local_body.is_some() {
+        //println!("is some");
+        let initial_body = quadrant.local_body.unwrap();
+        //println!("Initial Body {:?}", initial_body);
+        let children_domains_ranges = split_parent_domain_into_quarters(quadrant.domain_range);
+        quadrant.create_child_quadrants(children_domains_ranges);
+
+        // Find which quadrant the body _should_ go into and pass that into the next call
+        let index: usize = find_quadrant_index_to_place_body(body.coords, &children_domains_ranges);
+        let initial_index: usize = find_quadrant_index_to_place_body(initial_body.coords, &children_domains_ranges);
+        quadrant.place_body_in_quadrant(initial_body, initial_index);
+        quadrant.set_local_body_to_none();
+
+        match index {
+            0 => { return insert_into_quadrant(body, &mut *quadrant.child_quadrants.0.as_mut().unwrap()) }
+            1 => { return insert_into_quadrant(body, &mut *quadrant.child_quadrants.1.as_mut().unwrap()) }
+            2 => { return insert_into_quadrant(body, &mut *quadrant.child_quadrants.2.as_mut().unwrap()) }
+            3 => { return insert_into_quadrant(body, &mut *quadrant.child_quadrants.3.as_mut().unwrap()) }
+            _ => { return None }
+        };
+    }
+    else {
+        return None
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -120,19 +162,12 @@ pub struct Body {
     mass: f64,
 }
 
-// Implementation example
-/*
 fn main() {
     let b1: Body = Body { coords: (150.0, 100.0), mass: 6.0 };
     let b2: Body = Body { coords: (260.0, 100.0), mass: 6.0 };
     let b3: Body = Body { coords: (350.0, 200.0), mass: 6.0 };
-    let b4: Body = Body { coords: (150.0, 70.0), mass: 6.0 };
-    let b5: Body = Body { coords: (155.0, 170.0), mass: 6.0 };
-    let _bodies = [b1, b2, b3, b4, b5];
+    let _b4: Body = Body { coords: (150.0, 70.0), mass: 6.0 };
+    //let b5: Body = Body { coords: (155.0, 170.0), mass: 6.0 };
+    let _bodies = [b1, b2, b3, _b4/*, b4, b5*/];
     build_quadrant_space(&_bodies);
-
-    //let mut node: Quadrant = Quadrant::new();
-    //node.create_child_quadrants();
-    //println!("Node: {:?}", &node);
 }
-*/
