@@ -59,6 +59,18 @@ impl Quadrant {
     pub fn set_local_body_to_none(&mut self) {
         self.local_body = None;
     }
+
+    pub fn get_domains_of_children(self) -> [(Option<f64>, Option<f64>, Option<f64>, Option<f64>); 4] {
+        let domains = [(None, None, None, None); 4];
+
+        for i in 0..5 {
+            if self.child_quadrants.i.is_some() {
+               domains[i] = self.child_quadrants.i.unwrap().domain_range;
+
+            }
+        }
+        domains
+    }
 }
 
 pub fn split_parent_domain_into_quarters(domain: (f64, f64, f64, f64)) -> [(f64, f64, f64, f64); 4] {
@@ -76,10 +88,11 @@ pub fn split_parent_domain_into_quarters(domain: (f64, f64, f64, f64)) -> [(f64,
     let y_min: f64 = domain.2;
     let y_max: f64 = domain.3;
 
-    let q1 = ((x_max - x_min)/2.0, x_max, y_min, (y_max - y_min)/2.0);
-    let q2 = (x_min, ((x_max - x_min)/2.0), y_min, (y_max - y_min)/2.0);
-    let q3 = (x_min, ((x_max - x_min)/2.0), (y_max - y_min)/2.0, y_max);
-    let q4 = ((x_max - x_min)/2.0, x_max, (y_max - y_min)/2.0, y_max);
+    // Rounding madness!
+    let q1 = ( (((x_max - x_min)/2.0) * 10.0).round()/10.0, (x_max * 10.0).round()/10.0, (y_min * 10.0).round()/10.0, (((y_max - y_min)/2.0) * 10.0).round()/10.0);
+    let q2 = ( (x_min * 10.0).round()/10.0, (((x_max - x_min)/2.0) * 10.0).round()/10.0, (y_min * 10.0).round()/10.0, (((y_max - y_min)/2.0) * 10.0).round()/10.0);
+    let q3 = ( (x_min * 10.0).round()/10.0, (((x_max - x_min)/2.0) * 10.0).round()/10.0, (((y_max - y_min)/2.0) * 10.0).round()/10.0, (y_max * 10.0).round()/10.0);
+    let q4 = ( (((x_max - x_min)/2.0) * 10.0).round()/10.0, (x_max * 10.0).round()/10.0, (((y_max - y_min)/2.0) * 10.0).round()/10.0, (y_max * 10.0).round()/10.0);
 
     [q1, q2, q3, q4]
 }
@@ -113,12 +126,17 @@ pub fn insert_into_quadrant<'a>(body: Body, quadrant: &'a mut Quadrant) -> Optio
                 return Some(quadrant);
             }
             (_, _, _, _) => {
+                /*
+                    Rethink this: It shouldn't necessarily split the parent into quarters here. It should
+                    find which of the child_quadrants the body belongs to
+                */
+                println!("Quadrant match: {:?}", quadrant);
                 let children_domains_ranges = split_parent_domain_into_quarters(quadrant.domain_range);
                 quadrant.create_child_quadrants(children_domains_ranges);
 
                 // Find which quadrant the body _should_ go into and pass that into the next call
                 let index: usize = find_quadrant_index_to_place_body(body.coords, &children_domains_ranges);
-
+                println!("Finding quadrant index {:?}", index);
                 match index {
                     0 => { return insert_into_quadrant(body, &mut *quadrant.child_quadrants.0.as_mut().unwrap()) }
                     1 => { return insert_into_quadrant(body, &mut *quadrant.child_quadrants.1.as_mut().unwrap()) }
@@ -135,6 +153,8 @@ pub fn insert_into_quadrant<'a>(body: Body, quadrant: &'a mut Quadrant) -> Optio
         let initial_body = quadrant.local_body.unwrap();
         //println!("Initial Body {:?}", initial_body);
         let children_domains_ranges = split_parent_domain_into_quarters(quadrant.domain_range);
+        //println!("quadrant.domain_range: {:?}", quadrant.domain_range);
+        //println!("Children domains ranges {:?}", children_domains_ranges);
         quadrant.create_child_quadrants(children_domains_ranges);
 
         // Find which quadrant the body _should_ go into and pass that into the next call
@@ -166,8 +186,8 @@ fn main() {
     let b1: Body = Body { coords: (150.0, 100.0), mass: 6.0 };
     let b2: Body = Body { coords: (260.0, 100.0), mass: 6.0 };
     let b3: Body = Body { coords: (350.0, 200.0), mass: 6.0 };
-    let _b4: Body = Body { coords: (150.0, 70.0), mass: 6.0 };
-    //let b5: Body = Body { coords: (155.0, 170.0), mass: 6.0 };
-    let _bodies = [b1, b2, b3, _b4/*, b4, b5*/];
+    let b4: Body = Body { coords: (150.0, 70.0), mass: 6.0 };
+    let b5: Body = Body { coords: (155.0, 170.0), mass: 6.0 };
+    let _bodies = [b1, b2, b3, b4, b5];
     build_quadrant_space(&_bodies);
 }
